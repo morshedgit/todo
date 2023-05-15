@@ -16,5 +16,5 @@ public class Todo
     /// <summary>
     /// State of the todo item.
     /// </summary>
-    public bool IsComplete {get;set;}
+    public bool IsCompleted {get;set;}
 }

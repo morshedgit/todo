@@ -1,3 +1,4 @@
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
@@ -7,7 +8,17 @@ using Microsoft.AspNetCore.Mvc;
 [ApiController]
 public class TodoController : ControllerBase
 {
-    private static List<Todo> todos = new List<Todo>();
+    // private static List<Todo> todos = new List<Todo>();
+
+    private readonly DatabaseContext _dbContext;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TodoController"/> class.
+    /// </summary>
+    public TodoController(DatabaseContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
 
     // GET api/todo
     /// <summary>
@@ -16,6 +27,8 @@ public class TodoController : ControllerBase
     [HttpGet]
     public ActionResult<IEnumerable<Todo>> Get()
     {
+        using var connection = _dbContext.GetConnection();
+        var todos = connection.Query<Todo>("SElECT * FROM Todo");
         return Ok(todos);
     }
 
@@ -27,7 +40,8 @@ public class TodoController : ControllerBase
     [HttpGet("{id}")]
     public ActionResult<Todo> GetById(int id)
     {
-        var todo = todos.FirstOrDefault(t=>t.Id == id);
+        using var connection = _dbContext.GetConnection();
+        var todo = connection.QueryFirstOrDefault<Todo>("SElECT * FROM Todo WHERE Id = @Id",new {Id=id});
         if(todo == null)
         {
             return NotFound();
@@ -42,9 +56,11 @@ public class TodoController : ControllerBase
     /// <param name="todo">The Todo item to create. </param>
     [HttpPost]
     public ActionResult<Todo> Create(Todo todo)
-    {
-        todo.Id = todos.Count + 1;
-        todos.Add(todo);
+    {        
+        using var connection = _dbContext.GetConnection();
+        const string insertQuery = "INSERT INTO Todo (Title, IsCompleted) VALUES (@Title,@IsCompleted); SELECT last_insert_rowid();";
+        var id = connection.QuerySingle<int>(insertQuery,todo);
+        todo.Id = id;
         return CreatedAtAction(nameof(GetById), new { id = todo.Id},todo);
     }
 
@@ -57,13 +73,14 @@ public class TodoController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult Update(int id, Todo todo)
     {
-        var existingTodo = todos.FirstOrDefault(t=>t.Id == id);
-        if(existingTodo == null)
+        using var connection = _dbContext.GetConnection();
+        const string updateQuery = "UPDATE Todo SET Title = @Title, IsCompleted = @IsCompleted WHERE Id = @Id";
+        todo.Id = id;
+        var affectedRows = connection.Execute(updateQuery,todo);
+        if(affectedRows == 0)
         {
             return NotFound();
         }
-        existingTodo.Title = todo.Title;
-        existingTodo.IsComplete = todo.IsComplete;
         return NoContent();
     }
 
@@ -75,12 +92,13 @@ public class TodoController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete(int id)
     {
-        var todo = todos.FirstOrDefault(t=>t.Id == id);
-        if(todo == null)
+        using var connection = _dbContext.GetConnection();
+        const string deleteQuery = "DELETE FROM Todo WHERE Id = @Id";
+        var affectedRows = connection.Execute(deleteQuery, new { Id = id });
+        if(affectedRows == 0)
         {
             return NotFound();
         }
-        todos.Remove(todo);
         return NoContent();
     }
 }
