@@ -41,8 +41,8 @@ public class TodoController : ControllerBase
     public ActionResult<Todo> GetById(int id)
     {
         using var connection = _dbContext.GetConnection();
-        var todo = connection.QueryFirstOrDefault<Todo>("SElECT * FROM Todo WHERE Id = @Id",new {Id=id});
-        if(todo == null)
+        var todo = connection.QueryFirstOrDefault<Todo>("SElECT * FROM Todo WHERE Id = @Id", new { Id = id });
+        if (todo == null)
         {
             return NotFound();
         }
@@ -55,13 +55,20 @@ public class TodoController : ControllerBase
     /// </summary>
     /// <param name="todo">The Todo item to create. </param>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Todo))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public ActionResult<Todo> Create(Todo todo)
-    {        
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         using var connection = _dbContext.GetConnection();
         const string insertQuery = "INSERT INTO Todo (Title, IsCompleted) VALUES (@Title,@IsCompleted); SELECT last_insert_rowid();";
-        var id = connection.QuerySingle<int>(insertQuery,todo);
+        var id = connection.QuerySingle<int>(insertQuery, todo);
         todo.Id = id;
-        return CreatedAtAction(nameof(GetById), new { id = todo.Id},todo);
+        return CreatedAtAction(nameof(GetById), new { id = todo.Id }, todo);
     }
 
     // PUT api/todo/{id}
@@ -76,8 +83,8 @@ public class TodoController : ControllerBase
         using var connection = _dbContext.GetConnection();
         const string updateQuery = "UPDATE Todo SET Title = @Title, IsCompleted = @IsCompleted WHERE Id = @Id";
         todo.Id = id;
-        var affectedRows = connection.Execute(updateQuery,todo);
-        if(affectedRows == 0)
+        var affectedRows = connection.Execute(updateQuery, todo);
+        if (affectedRows == 0)
         {
             return NotFound();
         }
@@ -95,7 +102,7 @@ public class TodoController : ControllerBase
         using var connection = _dbContext.GetConnection();
         const string deleteQuery = "DELETE FROM Todo WHERE Id = @Id";
         var affectedRows = connection.Execute(deleteQuery, new { Id = id });
-        if(affectedRows == 0)
+        if (affectedRows == 0)
         {
             return NotFound();
         }
