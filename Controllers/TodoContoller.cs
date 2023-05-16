@@ -1,9 +1,11 @@
 using Dapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
 /// Manages Todo items.
 /// </summary>
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class TodoController : ControllerBase

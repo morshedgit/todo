@@ -5,6 +5,9 @@
 *.dll.config
 *.exe.config
 
+# DB files
+*.db
+
 # Build results
 [Dd]ebug/
 [Rr]elease/
